@@ -1,0 +1,98 @@
+1.创建注册中心（eureka-server）
+  
+  配置：server:
+          port: 8761
+        eureka:
+            instance:
+               hostname: eureka-server  # eureka实例的主机名
+            client:
+               register-with-eureka: false #不把自己注册到eureka上
+               fetch-registry: false #不从eureka上来获取服务的注册信息
+         service-url:
+             defaultZone: http://localhost:8761/eureka/
+   启动类加注解
+         @EnableEurekaServer
+
+2.创建服务提工者（provider-ticket）
+
+   配置 server:
+           port: 8002
+        spring:
+           application:
+                 name: provider-ticket
+
+
+        eureka:
+            instance:
+               prefer-ip-address: true # 注册服务的时候使用服务的ip地址
+            client:
+               service-url:
+                   defaultZone: http://localhost:8761/eureka/
+
+    创建提供服务的Controller,Service(http请求)
+
+3.创建服务发现者（consumer-user）
+
+  配置 spring:
+         application:
+             name: consumer-user
+        server:
+           port: 8200
+
+        eureka:
+           instance:
+              prefer-ip-address: true # 注册服务的时候使用服务的ip地址
+           client:
+              service-url:
+                  defaultZone: http://localhost:8761/eureka/
+
+   启动类加注解   @EnableDiscoveryClient //开启发现服务功能
+
+        给容器添加Bean(RestTemplate )
+            
+        @LoadBalanced //使用负载均衡机制
+	
+        @Bean
+	
+        public RestTemplate restTemplate(){
+	
+	     return new RestTemplate();
+	
+        }
+        
+        使用RestTemplate 获取服务结果
+
+         @RestController
+         public class UserController {
+
+             @Autowired
+             RestTemplate restTemplate;
+
+             @GetMapping("/buy")
+             public String buyTicket(String name){
+                  String s = restTemplate.getForObject("http://PROVIDER-TICKET/ticket", String.class);
+             }
+          }
+          
+         
+4.断路器(Netflix)     
+
+  依赖
+      <dependency>
+        
+       <groupId>org.springframework.cloud</groupId>
+          
+      <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+ 
+     </dependency>
+  1.在程序的启动类ServiceRibbonApplication 加@EnableHystrix注解开启Hystrix：
+
+  2.使用注解@HystrixCommand(fallbackMethod = "hiError")给service的方法创建了熔断器的功能
+
+    并编写请求失败后方法
+     public String hiError(String name) {
+        return "hi,"+name+",sorry,error!";
+    }
+
+   
+ 

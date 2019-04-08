@@ -1,0 +1,75 @@
+1.安装zookeeper，并启动
+
+2.创建服务提供者（provider-ticket），并把它注册到注册中心（zookeeper）
+  依赖
+   <dependency>
+			<groupId>com.alibaba.boot</groupId>
+			<artifactId>dubbo-spring-boot-starter</artifactId>
+			<version>0.1.0</version>
+		</dependency>
+
+		<!--引入zookeeper的客户端工具-->
+		<!-- https://mvnrepository.com/artifact/com.github.sgroschupf/zkclient -->
+		<dependency>
+			<groupId>com.github.sgroschupf</groupId>
+			<artifactId>zkclient</artifactId>
+			<version>0.1</version>
+		</dependency>
+   
+  配置
+    dubbo.application.name=provider-ticket
+
+    dubbo.registry.address=zookeeper://118.24.44.169 :2181
+  
+    dubbo.scan.base-packages=com.atguigu.ticket.service（提供服务类的包名）
+	
+  创建服务service（接口式编程）
+    实现类
+	@Component
+    @Service //将服务发布出去（import com.alibaba.dubbo.config.annotation.Service;）
+    public class TicketServiceImpl implements TicketService {
+      @Override
+      public String getTicket() {
+        return "《厉害了，我的国》";
+      }
+    }
+	
+3.创建服务消费者（consumer-user）
+  依赖
+   <dependency>
+			<groupId>com.alibaba.boot</groupId>
+			<artifactId>dubbo-spring-boot-starter</artifactId>
+			<version>0.1.0</version>
+		</dependency>
+
+		<!--引入zookeeper的客户端工具-->
+		<!-- https://mvnrepository.com/artifact/com.github.sgroschupf/zkclient -->
+		<dependency>
+			<groupId>com.github.sgroschupf</groupId>
+			<artifactId>zkclient</artifactId>
+			<version>0.1</version>
+		</dependency>
+
+  配置
+    dubbo.application.name=consumer-user
+    dubbo.registry.address=zookeeper://118.24.44.169 :2181
+  创建要消费的服务service接口（类名，包名要与服务提供者一直）
+  
+  远程调用接口
+  @Service
+  public class UserService{
+
+    @Reference（远程调用注解）
+    TicketService ticketService;
+
+    public void hello(){
+        String ticket = ticketService.getTicket();
+        System.out.println("买到票了："+ticket);
+    }
+
+
+ }
+  
+
+   
+   

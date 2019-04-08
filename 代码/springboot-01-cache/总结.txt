@@ -1,0 +1,78 @@
+1整合mybatis
+
+ mybatis.configuration.map-underscore-to-camel-case=true//开启驼峰命名法
+
+   @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")//添加数据后注入主键
+   @Insert("insert into employee (lastName,email,gender, d_id) values(#{lastName},#{email},#{gender},#{dId})")
+
+   注意：
+     @Update("update employee set lastName=#{lastName},email=#{email},gender=#{gender},d_id=#{dId} where id=#{id}")
+     public void updateEmp(Employee employee);
+     更新后新数据注入employee
+
+2.使用缓存
+  1.启动类+@EnableCaching
+  2.再需要缓存数据的方法（service）上加@Cacheable(value = {"emp"}/*,keyGenerator = "myKeyGenerator",condition = "#a0>1",unless = "#a0==2"*/)
+
+  3.更新请求的缓存（调用方法后缓存）
+    @CachePut(value = "emp",key = "#result.id")
+
+  4.删除数据时删除缓存
+    @CacheEvict(value="emp",beforeInvocation = false/*key = "#id",*/)
+
+3.整合redis
+  
+  依赖
+     <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+   配置  spring.redis.host=172.20.10.8
+
+
+   容器获取Template使用
+   
+   @Autowired
+    RedisTemplate redisTemplate;     （k-v都是字符串）)ay=OWZ2SlXe
+
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;     （k-v都是对象）
+
+    @Autowired
+    RedisTemplate<Object, Employee> employeeRedisTemplate;     （改变系列化规则）
+    
+    改变系列化规则,需要添加bean
+     @Bean
+    public RedisTemplate<Object, Employee> empRedisTemplate(
+            RedisConnectionFactory redisConnectionFactory)
+            throws UnknownHostException {
+        RedisTemplate<Object, Employee> template = new RedisTemplate<Object, Employee>();
+        template.setConnectionFactory(redisConnectionFactory);
+        Jackson2JsonRedisSerializer<Employee> ser = new Jackson2JsonRedisSerializer<Employee>(Employee.class);
+        template.setDefaultSerializer(ser);
+        return template;
+    }
+
+      //CacheManagerCustomizers可以来定制缓存的一些规则
+    @Primary  //将某个缓存管理器作为默认的
+    @Bean
+    public RedisCacheManager employeeCacheManager(RedisTemplate<Object, Employee> empRedisTemplate){
+        RedisCacheManager cacheManager = new RedisCacheManager(empRedisTemplate);（springboot2.0以下版本）
+        //key多了一个前缀
+
+        //使用前缀，默认会将CacheName作为key的前缀
+        cacheManager.setUsePrefix(true);
+
+        return cacheManager;
+    }
+    
+    （springboot2.0以上版本）
+    @Bean
+    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        RedisCacheManager redisCacheManager=RedisCacheManager.create(connectionFactory);
+       return redisCacheManager;
+   }
+    
+    
+     
